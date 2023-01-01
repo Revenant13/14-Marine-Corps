@@ -17,7 +17,7 @@ public abstract partial class SharedGunSystem
         SubscribeLocalEvent<MagazineAmmoProviderComponent, GetVerbsEvent<Verb>>(OnMagazineVerb);
         SubscribeLocalEvent<MagazineAmmoProviderComponent, EntInsertedIntoContainerMessage>(OnMagazineSlotChange);
         SubscribeLocalEvent<MagazineAmmoProviderComponent, EntRemovedFromContainerMessage>(OnMagazineSlotChange);
-        SubscribeLocalEvent<MagazineAmmoProviderComponent, UseInHandEvent>(OnMagazineUse);
+        SubscribeLocalEvent<MagazineAmmoProviderComponent, UniqueActionInHandEvent>(OnMagazineUse);  //14MC Edit - UniqueActionInHandEvent
         SubscribeLocalEvent<MagazineAmmoProviderComponent, ExaminedEvent>(OnMagazineExamine);
     }
 
@@ -30,7 +30,7 @@ public abstract partial class SharedGunSystem
         args.PushMarkup(Loc.GetString("gun-magazine-examine", ("color", AmmoExamineColor), ("count", count)));
     }
 
-    private void OnMagazineUse(EntityUid uid, MagazineAmmoProviderComponent component, UseInHandEvent args)
+    private void OnMagazineUse(EntityUid uid, MagazineAmmoProviderComponent component, UniqueActionInHandEvent args)
     {
         var magEnt = GetMagazineEntity(uid);
 

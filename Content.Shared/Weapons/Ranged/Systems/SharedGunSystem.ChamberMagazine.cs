@@ -18,7 +18,7 @@ public abstract partial class SharedGunSystem
         SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, GetVerbsEvent<Verb>>(OnMagazineVerb);
         SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, EntInsertedIntoContainerMessage>(OnMagazineSlotChange);
         SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, EntRemovedFromContainerMessage>(OnMagazineSlotChange);
-        SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, UseInHandEvent>(OnMagazineUse);
+        SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, UniqueActionInHandEvent>(OnMagazineUse);  //14MC Edit - UniqueActionInHandEvent
         SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, ExaminedEvent>(OnChamberMagazineExamine);
     }
 

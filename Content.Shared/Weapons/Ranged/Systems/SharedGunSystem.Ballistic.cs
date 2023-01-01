@@ -9,7 +9,6 @@ using Robust.Shared.GameStates;
 using Robust.Shared.Map;
 using Robust.Shared.Serialization;
 using Robust.Shared.Utility;
-using Content.Shared.Interaction.Events;
 
 namespace Content.Shared.Weapons.Ranged.Systems;
 
@@ -27,10 +26,10 @@ public abstract partial class SharedGunSystem
         SubscribeLocalEvent<BallisticAmmoProviderComponent, ExaminedEvent>(OnBallisticExamine);
         SubscribeLocalEvent<BallisticAmmoProviderComponent, GetVerbsEvent<Verb>>(OnBallisticVerb);
         SubscribeLocalEvent<BallisticAmmoProviderComponent, InteractUsingEvent>(OnBallisticInteractUsing);
-        SubscribeLocalEvent<BallisticAmmoProviderComponent, UseInHandEvent>(OnBallisticUse);
+        SubscribeLocalEvent<BallisticAmmoProviderComponent, UniqueActionInHandEvent>(OnBallisticUse); //14MC - UniqueActionInHandEvent
     }
 
-    private void OnBallisticUse(EntityUid uid, BallisticAmmoProviderComponent component, UseInHandEvent args)
+    private void OnBallisticUse(EntityUid uid, BallisticAmmoProviderComponent component, UniqueActionInHandEvent args) //14MC Edit - UniqueActionInHandEvent args
     {
         ManualCycle(component, Transform(uid).MapPosition, args.User);
         args.Handled = true;

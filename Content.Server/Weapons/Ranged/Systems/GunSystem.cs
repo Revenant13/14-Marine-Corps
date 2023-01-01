@@ -85,6 +85,8 @@ public sealed partial class GunSystem : SharedGunSystem
             }
         }
 
+        var shootmodifier = new GunStatsModifierEvent(Angle.Zero, Angle.Zero, Angle.Zero, Angle.Zero); //14MC edit
+        RaiseLocalEvent(gun.Owner, ref shootmodifier); //14MC edit
         var fromMap = fromCoordinates.ToMap(EntityManager);
         var toMap = toCoordinates.ToMapPos(EntityManager);
         var mapDirection = toMap - fromMap.Position;

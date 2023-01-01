@@ -75,4 +75,9 @@ public enum LogType
     Gib = 70,
     Identity = 71,
     CableCut = 72,
+    StorePurchase = 73,
+    LatticeCut = 74,
+    Stripping = 75,
+    Stamina = 76,
+    EntitySpawn = 77,
 }

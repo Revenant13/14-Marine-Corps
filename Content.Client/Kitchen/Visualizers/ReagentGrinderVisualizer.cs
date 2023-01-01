@@ -1,12 +1,11 @@
 ﻿using Robust.Client.GameObjects;
-using Robust.Shared.GameObjects;
-using Robust.Shared.IoC;
-using static Content.Shared.Kitchen.Components.SharedReagentGrinderComponent;
+using Content.Shared.Kitchen;
 
 namespace Content.Client.Kitchen.Visualizers
 {
     public sealed class ReagentGrinderVisualizer : AppearanceVisualizer
     {
+        [Obsolete("Subscribe to AppearanceChangeEvent instead.")]
         public override void OnChangeData(AppearanceComponent component)
         {
             base.OnChangeData(component);

@@ -5,11 +5,10 @@ using Content.Server.Players;
 using Content.Server.Roles;
 using Content.Server.Traitor;
 using Content.Server.Traitor.Uplink;
-using Content.Server.Traitor.Uplink.Account;
+using Content.Server.MobState;
 using Content.Shared.CCVar;
 using Content.Shared.Dataset;
 using Content.Shared.Roles;
-using Content.Shared.Traitor.Uplink;
 using Robust.Server.Player;
 using Robust.Shared.Audio;
 using Robust.Shared.Configuration;
@@ -28,6 +27,9 @@ public sealed class TraitorRuleSystem : GameRuleSystem
     [Dependency] private readonly IObjectivesManager _objectivesManager = default!;
     [Dependency] private readonly IChatManager _chatManager = default!;
     [Dependency] private readonly GameTicker _gameTicker = default!;
+    [Dependency] private readonly MobStateSystem _mobStateSystem = default!;
+    [Dependency] private readonly UplinkSystem _uplink = default!;
+
 
     public override string Prototype => "Traitor";
 
@@ -35,6 +37,7 @@ public sealed class TraitorRuleSystem : GameRuleSystem
     public List<TraitorRole> Traitors = new();
 
     private const string TraitorPrototypeID = "Traitor";
+    private const string TraitorUplinkPresetId = "StorePresetUplink";
 
     public int TotalTraitors => Traitors.Count;
     public string[] Codewords = new string[3];
@@ -64,13 +67,6 @@ public sealed class TraitorRuleSystem : GameRuleSystem
         MakeCodewords();
         if (!RuleAdded)
             return;
-
-        // If the current preset doesn't explicitly contain the traitor game rule, just carry on and remove self.
-        if (_gameTicker.Preset?.Rules.Contains(Prototype) ?? false)
-        {
-            _gameTicker.EndGameRule(_prototypeManager.Index<GameRulePrototype>(Prototype));
-            return;
-        }
 
         var minPlayers = _cfg.GetCVar(CCVars.TraitorMinPlayers);
         if (!ev.Forced && ev.Players.Length < minPlayers)
@@ -173,16 +169,15 @@ public sealed class TraitorRuleSystem : GameRuleSystem
         }
 
         // creadth: we need to create uplink for the antag.
-        // PDA should be in place already, so we just need to
-        // initiate uplink account.
+        // PDA should be in place already
         DebugTools.AssertNotNull(mind.OwnedEntity);
 
         var startingBalance = _cfg.GetCVar(CCVars.TraitorStartingBalance);
-        var uplinkAccount = new UplinkAccount(startingBalance, mind.OwnedEntity!);
-        var accounts = EntityManager.EntitySysManager.GetEntitySystem<UplinkAccountsSystem>();
-        accounts.AddNewAccount(uplinkAccount);
 
-        if (!EntityManager.EntitySysManager.GetEntitySystem<UplinkSystem>().AddUplink(mind.OwnedEntity!.Value, uplinkAccount))
+        if (mind.CurrentJob != null)
+            startingBalance = Math.Max(startingBalance - mind.CurrentJob.Prototype.AntagAdvantage, 0);
+
+        if (!_uplink.AddUplink(mind.OwnedEntity!.Value, startingBalance))
             return false;
 
         var antagPrototype = _prototypeManager.Index<AntagPrototype>(TraitorPrototypeID);
@@ -198,7 +193,7 @@ public sealed class TraitorRuleSystem : GameRuleSystem
         var difficulty = 0f;
         for (var pick = 0; pick < maxPicks && maxDifficulty > difficulty; pick++)
         {
-            var objective = _objectivesManager.GetRandomObjective(traitorRole.Mind);
+            var objective = _objectivesManager.GetRandomObjective(traitorRole.Mind, "TraitorObjectiveGroups");
             if (objective == null) continue;
             if (traitorRole.Mind.TryAddObjective(objective))
                 difficulty += objective.Difficulty;
@@ -323,5 +318,19 @@ public sealed class TraitorRuleSystem : GameRuleSystem
             }
         }
         ev.AddLine(result);
+    }
+
+    public IEnumerable<Traitor.TraitorRole> GetOtherTraitorsAliveAndConnected(Mind.Mind ourMind)
+    {
+        var traitors = Traitors;
+        List<Traitor.TraitorRole> removeList = new();
+
+        return Traitors // don't want
+            .Where(t => t.Mind is not null) // no mind
+            .Where(t => t.Mind.OwnedEntity is not null) // no entity
+            .Where(t => t.Mind.Session is not null) // player disconnected
+            .Where(t => t.Mind != ourMind) // ourselves
+            .Where(t => _mobStateSystem.IsAlive((EntityUid) t.Mind.OwnedEntity!)) // dead
+            .Where(t => t.Mind.CurrentEntity == t.Mind.OwnedEntity); // not in original body
     }
 }

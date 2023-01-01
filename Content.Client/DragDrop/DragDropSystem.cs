@@ -1,4 +1,5 @@
 using Content.Client.CombatMode;
+using Content.Client.Gameplay;
 using Content.Client.Outline;
 using Content.Client.Viewport;
 using Content.Shared.ActionBlocker;
@@ -303,7 +304,7 @@ namespace Content.Client.DragDrop
 
             IList<EntityUid> entities;
 
-            if (_stateManager.CurrentState is GameScreen screen)
+            if (_stateManager.CurrentState is GameplayState screen)
             {
                 entities = screen.GetEntitiesUnderPosition(args.Coordinates);
             }
@@ -378,7 +379,7 @@ namespace Content.Client.DragDrop
             // TODO: Duplicated in SpriteSystem and TargetOutlineSystem. Should probably be cached somewhere for a frame?
             var mousePos = _eyeManager.ScreenToMap(_inputManager.MouseScreenPosition).Position;
             var bounds = new Box2(mousePos - 1.5f, mousePos + 1.5f);
-            var pvsEntities = _lookup.GetEntitiesIntersecting(_eyeManager.CurrentMap, bounds, LookupFlags.Approximate | LookupFlags.Anchored);
+            var pvsEntities = _lookup.GetEntitiesIntersecting(_eyeManager.CurrentMap, bounds, LookupFlags.Approximate | LookupFlags.Static);
             foreach (var pvsEntity in pvsEntities)
             {
                 if (!EntityManager.TryGetComponent(pvsEntity, out SpriteComponent? inRangeSprite) ||

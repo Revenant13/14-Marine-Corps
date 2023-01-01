@@ -64,3 +64,18 @@
   id: SmartLight #used by powered lights.
   name: device-frequency-prototype-name-lights
   frequency: 1173
+
+- type: deviceFrequency
+  id: MailingUnit
+  name: device-frequency-prototype-name-mailing-units
+  frequency: 2300
+
+- type: deviceFrequency
+  id: PDA
+  name: device-frequency-prototype-name-pdas
+  frequency: 2202
+
+- type: deviceFrequency
+  id: Fax
+  name: device-frequency-prototype-name-fax
+  frequency: 2640

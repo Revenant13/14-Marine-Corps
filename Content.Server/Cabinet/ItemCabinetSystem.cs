@@ -1,3 +1,4 @@
+using Content.Server.Storage.Components;
 using Content.Shared.Audio;
 using Content.Shared.Cabinet;
 using Content.Shared.Containers.ItemSlots;
@@ -26,6 +27,8 @@ namespace Content.Server.Cabinet
 
             SubscribeLocalEvent<ItemCabinetComponent, EntInsertedIntoContainerMessage>(OnContainerModified);
             SubscribeLocalEvent<ItemCabinetComponent, EntRemovedFromContainerMessage>(OnContainerModified);
+
+            SubscribeLocalEvent<ItemCabinetComponent, LockToggleAttemptEvent>(OnLockToggleAttempt);
         }
 
         private void OnComponentInit(EntityUid uid, ItemCabinetComponent cabinet, ComponentInit args)
@@ -62,9 +65,19 @@ namespace Content.Server.Cabinet
                 UpdateAppearance(uid, cabinet);
         }
 
+        private void OnLockToggleAttempt(EntityUid uid, ItemCabinetComponent cabinet, ref LockToggleAttemptEvent args)
+        {
+            // Cannot lock or unlock while open.
+            if (cabinet.Opened)
+                args.Cancelled = true;
+        }
+
         private void AddToggleOpenVerb(EntityUid uid, ItemCabinetComponent cabinet, GetVerbsEvent<ActivationVerb> args)
         {
             if (args.Hands == null || !args.CanAccess || !args.CanInteract)
+                return;
+
+            if (TryComp<LockComponent>(uid, out var lockComponent) && lockComponent.Locked)
                 return;
 
             // Toggle open verb
@@ -98,6 +111,9 @@ namespace Content.Server.Cabinet
         private void ToggleItemCabinet(EntityUid uid, ItemCabinetComponent? cabinet = null)
         {
             if (!Resolve(uid, ref cabinet))
+                return;
+
+            if (TryComp<LockComponent>(uid, out var lockComponent) && lockComponent.Locked)
                 return;
 
             cabinet.Opened = !cabinet.Opened;

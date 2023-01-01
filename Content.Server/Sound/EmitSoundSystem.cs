@@ -36,6 +36,9 @@ namespace Content.Server.Sound
             base.Update(frameTime);
             foreach (var soundSpammer in EntityQuery<SpamEmitSoundComponent>())
             {
+                if (!soundSpammer.Enabled)
+                    continue;
+
                 soundSpammer.Accumulator += frameTime;
                 if (soundSpammer.Accumulator < soundSpammer.RollInterval)
                 {
@@ -46,7 +49,7 @@ namespace Content.Server.Sound
                 if (_random.Prob(soundSpammer.PlayChance))
                 {
                     if (soundSpammer.PopUp != null)
-                        _popupSystem.PopupEntity(Loc.GetString(soundSpammer.PopUp), soundSpammer.Owner, Filter.Pvs(soundSpammer.Owner));
+                        _popupSystem.PopupEntity(Loc.GetString(soundSpammer.PopUp), soundSpammer.Owner);
                     TryEmitSound(soundSpammer);
                 }
             }
@@ -54,6 +57,7 @@ namespace Content.Server.Sound
         public override void Initialize()
         {
             base.Initialize();
+            SubscribeLocalEvent<EmitSoundOnSpawnComponent, ComponentInit>(HandleEmitSpawnOnInit);
             SubscribeLocalEvent<EmitSoundOnLandComponent, LandEvent>(HandleEmitSoundOnLand);
             SubscribeLocalEvent<EmitSoundOnUseComponent, UseInHandEvent>(HandleEmitSoundOnUseInHand);
             SubscribeLocalEvent<EmitSoundOnThrowComponent, ThrownEvent>(HandleEmitSoundOnThrown);
@@ -64,20 +68,27 @@ namespace Content.Server.Sound
             SubscribeLocalEvent<EmitSoundOnDropComponent, DroppedEvent>(HandleEmitSoundOnDrop);
         }
 
+        private void HandleEmitSpawnOnInit(EntityUid uid, EmitSoundOnSpawnComponent component, ComponentInit args)
+        {
+            TryEmitSound(component);
+        }
+
         private void HandleEmitSoundOnTrigger(EntityUid uid, EmitSoundOnTriggerComponent component, TriggerEvent args)
         {
             TryEmitSound(component);
             args.Handled = true;
         }
 
-        private void HandleEmitSoundOnLand(EntityUid eUI, BaseEmitSoundComponent component, LandEvent arg)
+        private void HandleEmitSoundOnLand(EntityUid uid, BaseEmitSoundComponent component, LandEvent arg)
         {
-            if (!TryComp<TransformComponent>(eUI, out var xform) ||
+            if (!TryComp<TransformComponent>(uid, out var xform) ||
                 !_mapManager.TryGetGrid(xform.GridUid, out var grid)) return;
 
             var tile = grid.GetTileRef(xform.Coordinates);
 
-            if (tile.IsSpace(_tileDefMan)) return;
+            // Handle maps being grids (we'll still emit the sound).
+            if (xform.GridUid != xform.MapUid && tile.IsSpace(_tileDefMan))
+                return;
 
             TryEmitSound(component);
         }
@@ -122,6 +133,8 @@ namespace Content.Server.Sound
 
         private void TryEmitSound(BaseEmitSoundComponent component)
         {
+            if (component.Sound == null)
+                return;
             _audioSystem.PlayPvs(component.Sound, component.Owner, component.Sound.Params.AddVolume(-2f));
         }
     }

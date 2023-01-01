@@ -9,13 +9,36 @@
   - type: Sprite
     state: icon_alt
   - type: Clothing
+    equippedPrefix: alt
     slots:
     - ears
 
 - type: entity
   parent: ClothingHeadsetAlt
+  id: ClothingHeadsetAltCentCom
+  name: CentCom over-ear headset
+  components:
+    - type: Headset
+      channels:
+      - Common
+      - Command
+      - CentCom
+      - Engineering
+      - Medical
+      - Science
+      - Security
+      - Service
+      - Supply
+      defaultChannel: CentCom
+    - type: Sprite
+      sprite: Clothing/Ears/Headsets/centcom.rsi
+    - type: Clothing
+      sprite: Clothing/Ears/Headsets/centcom.rsi
+
+- type: entity
+  parent: ClothingHeadsetAlt
   id: ClothingHeadsetAltCommand
-  name: command overear-headset
+  name: command over-ear headset
   components:
   - type: Headset
     channels:
@@ -27,6 +50,7 @@
     - Security
     - Service
     - Supply
+    defaultChannel: Command
   - type: Sprite
     sprite: Clothing/Ears/Headsets/command.rsi
   - type: Clothing
@@ -35,13 +59,14 @@
 - type: entity
   parent: ClothingHeadsetAlt
   id: ClothingHeadsetAltMedical
-  name: medical overear-headset
+  name: medical over-ear headset
   components:
   - type: Headset
     channels:
     - Command
     - Common
     - Medical
+    defaultChannel: Medical
   - type: Sprite
     sprite: Clothing/Ears/Headsets/medical.rsi
   - type: Clothing
@@ -50,13 +75,14 @@
 - type: entity
   parent: ClothingHeadsetAlt
   id: ClothingHeadsetAltSecurity
-  name: security overear-headset
+  name: security over-ear headset
   components:
   - type: Headset
     channels:
     - Command
     - Common
     - Security
+    defaultChannel: Security
   - type: Sprite
     sprite: Clothing/Ears/Headsets/security.rsi
   - type: Clothing
@@ -64,13 +90,62 @@
 
 - type: entity
   parent: ClothingHeadsetAlt
+  id: ClothingHeadsetAltEngineering
+  name: engineering over-ear headset
+  components:
+  - type: Headset
+    channels:
+    - Command
+    - Common
+    - Engineering
+    defaultChannel: Engineering
+  - type: Sprite
+    sprite: Clothing/Ears/Headsets/engineering.rsi
+  - type: Clothing
+    sprite: Clothing/Ears/Headsets/engineering.rsi
+ 
+- type: entity
+  parent: ClothingHeadsetAlt
+  id: ClothingHeadsetAltScience
+  name: science over-ear headset
+  components:
+  - type: Headset
+    channels:
+    - Command
+    - Common
+    - Science
+    defaultChannel: Science
+  - type: Sprite
+    sprite: Clothing/Ears/Headsets/science.rsi
+  - type: Clothing
+    sprite: Clothing/Ears/Headsets/science.rsi
+
+- type: entity
+  parent: ClothingHeadsetAlt
+  id: ClothingHeadsetAltCargo
+  name: cargo over-ear headset
+  components:
+  - type: Headset
+    channels:
+    - Command
+    - Common
+    - Supply
+    defaultChannel: Supply
+  - type: Sprite
+    sprite: Clothing/Ears/Headsets/cargo.rsi
+  - type: Clothing
+    sprite: Clothing/Ears/Headsets/cargo.rsi
+
+- type: entity
+  parent: ClothingHeadsetAlt
   id: ClothingHeadsetAltSyndicate
-  name: syndicate overear-headset
+  name: syndicate over-ear headset
   description: An updated, modular syndicate intercom that fits over the head and takes encryption keys. Protects ears from flashbangs.
   components:
   - type: Headset
     channels:
     - Syndicate
+    defaultChannel: Syndicate
   - type: Sprite
     sprite: Clothing/Ears/Headsets/syndicate.rsi
   - type: Clothing

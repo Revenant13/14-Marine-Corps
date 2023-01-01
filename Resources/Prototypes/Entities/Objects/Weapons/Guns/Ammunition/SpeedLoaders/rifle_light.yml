@@ -3,6 +3,10 @@
   name: "speed loader (.30 rifle)"
   parent: BaseItem
   components:
+  - type: Tag
+    tags:
+      - SpeedLoaderRifle
+  - type: SpeedLoader
   - type: BallisticAmmoProvider
     whitelist:
       tags:
@@ -22,3 +26,7 @@
     steps: 6
     zeroVisible: false
   - type: Appearance
+  - type: ContainerContainer
+    containers:
+      ballistic-ammo: !type:Container
+        ents: []

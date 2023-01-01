@@ -1,9 +1,10 @@
-using Content.Server.Clothing.Components;
 using Content.Server.Light.Components;
+using Content.Shared.Clothing.Components;
 using Content.Shared.Clothing.EntitySystems;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Item;
 using Content.Shared.Light.Component;
+using Content.Shared.Tag;
 using Content.Shared.Verbs;
 using JetBrains.Annotations;
 using Robust.Server.GameObjects;
@@ -17,6 +18,8 @@ namespace Content.Server.Light.EntitySystems
     {
         [Dependency] private readonly SharedItemSystem _item = default!;
         [Dependency] private readonly ClothingSystem _clothing = default!;
+        [Dependency] private readonly TagSystem _tagSystem = default!;
+        [Dependency] private readonly SharedAudioSystem _audio = default!;
 
         public override void Initialize()
         {
@@ -59,6 +62,8 @@ namespace Content.Server.Light.EntitySystems
                         var meta = MetaData(component.Owner);
                         meta.EntityName = Loc.GetString(component.SpentName);
                         meta.EntityDescription = Loc.GetString(component.SpentDesc);
+
+                        _tagSystem.AddTag(component.Owner, "Trash");
 
                         UpdateSpriteAndSounds(component);
                         UpdateVisualizer(component);
@@ -126,9 +131,7 @@ namespace Content.Server.Light.EntitySystems
                 switch (component.CurrentState)
                 {
                     case ExpendableLightState.Lit:
-                    {
-                        SoundSystem.Play(component.LitSound.GetSound(), Filter.Pvs(component.Owner), component.Owner);
-
+                        _audio.PlayPvs(component.LitSound, component.Owner);
                         if (component.IconStateLit != string.Empty)
                         {
                             sprite.LayerSetState(2, component.IconStateLit);
@@ -137,22 +140,21 @@ namespace Content.Server.Light.EntitySystems
 
                         sprite.LayerSetVisible(1, true);
                         break;
-                    }
                     case ExpendableLightState.Fading:
                     {
                         break;
                     }
                     default:
                     case ExpendableLightState.Dead:
-                    {
-                        if (component.DieSound != null)
-                            SoundSystem.Play(component.DieSound.GetSound(), Filter.Pvs(component.Owner), component.Owner);
+                        _audio.PlayPvs(component.DieSound, component.Owner);
+                        if (!string.IsNullOrEmpty(component.IconStateSpent))
+                        {
+                            sprite.LayerSetState(0, component.IconStateSpent);
+                            sprite.LayerSetShader(0, "shaded");
+                        }
 
-                        sprite.LayerSetState(0, component.IconStateSpent);
-                        sprite.LayerSetShader(0, "shaded");
                         sprite.LayerSetVisible(1, false);
                         break;
-                    }
                 }
             }
 

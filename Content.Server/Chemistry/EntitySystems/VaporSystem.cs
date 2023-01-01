@@ -9,7 +9,10 @@ using Content.Shared.Throwing;
 using Content.Shared.Vapor;
 using JetBrains.Annotations;
 using Robust.Shared.Map;
+using Robust.Shared.Map.Components;
+using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Dynamics;
+using Robust.Shared.Physics.Events;
 using Robust.Shared.Prototypes;
 
 namespace Content.Server.Chemistry.EntitySystems
@@ -30,7 +33,7 @@ namespace Content.Server.Chemistry.EntitySystems
             SubscribeLocalEvent<VaporComponent, StartCollideEvent>(HandleCollide);
         }
 
-        private void HandleCollide(EntityUid uid, VaporComponent component, StartCollideEvent args)
+        private void HandleCollide(EntityUid uid, VaporComponent component, ref StartCollideEvent args)
         {
             if (!EntityManager.TryGetComponent(uid, out SolutionContainerManagerComponent? contents)) return;
 
@@ -103,11 +106,11 @@ namespace Content.Server.Chemistry.EntitySystems
 
             vapor.ReactTimer += frameTime;
 
-            if (vapor.ReactTimer >= ReactTime && TryComp(xform.GridUid, out IMapGridComponent? gridComp))
+            if (vapor.ReactTimer >= ReactTime && TryComp(xform.GridUid, out MapGridComponent? gridComp))
             {
                 vapor.ReactTimer = 0;
 
-                var tile = gridComp.Grid.GetTileRef(xform.Coordinates.ToVector2i(EntityManager, _mapManager));
+                var tile = gridComp.GetTileRef(xform.Coordinates.ToVector2i(EntityManager, _mapManager));
                 foreach (var reagentQuantity in contents.Contents.ToArray())
                 {
                     if (reagentQuantity.Quantity == FixedPoint2.Zero) continue;

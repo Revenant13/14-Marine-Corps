@@ -17,6 +17,9 @@ using Robust.Shared.Physics.Controllers;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using System.Diagnostics.CodeAnalysis;
+using Content.Shared.Mech.Components;
+using Robust.Shared.Physics.Components;
+using Robust.Shared.Physics.Systems;
 
 namespace Content.Shared.Movement.Systems
 {
@@ -34,8 +37,9 @@ namespace Content.Shared.Movement.Systems
         [Dependency] private readonly SharedContainerSystem _container = default!;
         [Dependency] private readonly SharedGravitySystem _gravity = default!;
         [Dependency] private readonly SharedMobStateSystem _mobState = default!;
-        [Dependency] private readonly TagSystem _tags = default!;
         [Dependency] private readonly SharedAudioSystem _audio = default!;
+        [Dependency] private readonly SharedTransformSystem _transform = default!;
+        [Dependency] private readonly TagSystem _tags = default!;
 
         private const float StepSoundMoveDistanceRunning = 2;
         private const float StepSoundMoveDistanceWalking = 1.5f;
@@ -43,6 +47,8 @@ namespace Content.Shared.Movement.Systems
         private const float FootstepVariation = 0f;
         private const float FootstepVolume = 3f;
         private const float FootstepWalkingAddedVolumeMultiplier = 0f;
+
+        protected ISawmill Sawmill = default!;
 
         /// <summary>
         /// <see cref="CCVars.StopSpeed"/>
@@ -59,14 +65,14 @@ namespace Content.Shared.Movement.Systems
         public override void Initialize()
         {
             base.Initialize();
+            Sawmill = Logger.GetSawmill("mover");
             InitializeFootsteps();
             InitializeInput();
             InitializeMob();
-            InitializePushing();
             InitializeRelay();
             _configManager.OnValueChanged(CCVars.RelativeMovement, SetRelativeMovement, true);
             _configManager.OnValueChanged(CCVars.StopSpeed, SetStopSpeed, true);
-            UpdatesBefore.Add(typeof(SharedTileFrictionController));
+            UpdatesBefore.Add(typeof(TileFrictionController));
         }
 
         private void SetRelativeMovement(bool value) => _relativeMovement = value;
@@ -76,7 +82,6 @@ namespace Content.Shared.Movement.Systems
         {
             base.Shutdown();
             ShutdownInput();
-            ShutdownPushing();
             _configManager.UnsubValueChanged(CCVars.RelativeMovement, SetRelativeMovement);
             _configManager.UnsubValueChanged(CCVars.StopSpeed, SetStopSpeed);
         }
@@ -87,14 +92,6 @@ namespace Content.Shared.Movement.Systems
             UsedMobMovement.Clear();
         }
 
-        protected Angle GetParentGridAngle(TransformComponent xform, InputMoverComponent mover)
-        {
-            if (!_mapManager.TryGetGrid(xform.GridUid, out var grid))
-                return mover.LastGridAngle;
-
-            return grid.WorldRotation;
-        }
-
         /// <summary>
         ///     Movement while considering actionblockers, weightlessness, etc.
         /// </summary>
@@ -102,9 +99,97 @@ namespace Content.Shared.Movement.Systems
             InputMoverComponent mover,
             PhysicsComponent physicsComponent,
             TransformComponent xform,
-            float frameTime)
+            float frameTime,
+            EntityQuery<TransformComponent> xformQuery)
         {
             DebugTools.Assert(!UsedMobMovement.ContainsKey(mover.Owner));
+
+            // Update relative movement
+            if (mover.LerpAccumulator > 0f)
+            {
+                Dirty(mover);
+                mover.LerpAccumulator -= frameTime;
+
+                if (mover.LerpAccumulator <= 0f)
+                {
+                    mover.LerpAccumulator = 0f;
+                    var relative = xform.GridUid;
+                    relative ??= xform.MapUid;
+
+                    // So essentially what we want:
+                    // 1. If we go from grid to map then preserve our rotation and continue as usual
+                    // 2. If we go from grid -> grid then (after lerp time) snap to nearest cardinal (probably imperceptible)
+                    // 3. If we go from map -> grid then (after lerp time) snap to nearest cardinal
+
+                    if (!mover.RelativeEntity.Equals(relative))
+                    {
+                        // Okay need to get our old relative rotation with respect to our new relative rotation
+                        // e.g. if we were right side up on our current grid need to get what that is on our new grid.
+                        var currentRotation = Angle.Zero;
+                        var targetRotation = Angle.Zero;
+
+                        // Get our current relative rotation
+                        if (xformQuery.TryGetComponent(mover.RelativeEntity, out var oldRelativeXform))
+                        {
+                            currentRotation = oldRelativeXform.WorldRotation + mover.RelativeRotation;
+                        }
+
+                        if (xformQuery.TryGetComponent(relative, out var relativeXform))
+                        {
+                            // This is our current rotation relative to our new parent.
+                            mover.RelativeRotation = (currentRotation - relativeXform.WorldRotation).FlipPositive();
+                        }
+
+                        // If we went from grid -> map we'll preserve our worldrotation
+                        if (relative != null && _mapManager.IsMap(relative.Value))
+                        {
+                            targetRotation = currentRotation.FlipPositive().Reduced();
+                        }
+                        // If we went from grid -> grid OR grid -> map then snap the target to cardinal and lerp there.
+                        // OR just rotate to zero (depending on cvar)
+                        else if (relative != null && _mapManager.IsGrid(relative.Value))
+                        {
+                            if (CameraRotationLocked)
+                                targetRotation = Angle.Zero;
+                            else
+                                targetRotation = mover.RelativeRotation.GetCardinalDir().ToAngle().Reduced();
+                        }
+
+                        mover.RelativeEntity = relative;
+                        mover.TargetRelativeRotation = targetRotation;
+                    }
+                }
+            }
+
+            var angleDiff = Angle.ShortestDistance(mover.RelativeRotation, mover.TargetRelativeRotation);
+
+            // if we've just traversed then lerp to our target rotation.
+            if (!angleDiff.EqualsApprox(Angle.Zero, 0.001))
+            {
+                var adjustment = angleDiff * 5f * frameTime;
+                var minAdjustment = 0.01 * frameTime;
+
+                if (angleDiff < 0)
+                {
+                    adjustment = Math.Min(adjustment, -minAdjustment);
+                    adjustment = Math.Clamp(adjustment, angleDiff, -angleDiff);
+                }
+                else
+                {
+                    adjustment = Math.Max(adjustment, minAdjustment);
+                    adjustment = Math.Clamp(adjustment, -angleDiff, angleDiff);
+                }
+
+                mover.RelativeRotation += adjustment;
+                mover.RelativeRotation.FlipPositive();
+                Dirty(mover);
+            }
+            else if (!angleDiff.Equals(Angle.Zero))
+            {
+                mover.TargetRelativeRotation.FlipPositive();
+                mover.RelativeRotation = mover.TargetRelativeRotation;
+                Dirty(mover);
+            }
 
             if (!UseMobMovement(mover, physicsComponent))
             {
@@ -134,12 +219,6 @@ namespace Content.Shared.Movement.Systems
                     if (!touching && TryComp<MobMoverComponent>(xform.Owner, out var mobMover))
                         touching |= IsAroundCollider(PhysicsSystem, xform, mobMover, physicsComponent);
                 }
-
-                if (!touching)
-                {
-                    if (xform.GridUid != null)
-                        mover.LastGridAngle = GetParentGridAngle(xform, mover);
-                }
             }
 
             // Regular movement.
@@ -152,7 +231,7 @@ namespace Content.Shared.Movement.Systems
 
             var total = walkDir * walkSpeed + sprintDir * sprintSpeed;
 
-            var parentRotation = GetParentGridAngle(xform, mover);
+            var parentRotation = GetParentGridAngle(mover, xformQuery);
             var worldTotal = _relativeMovement ? parentRotation.RotateVec(total) : total;
 
             DebugTools.Assert(MathHelper.CloseToPercent(total.Length, worldTotal.Length));
@@ -190,29 +269,12 @@ namespace Content.Shared.Movement.Systems
             var minimumFrictionSpeed = moveSpeedComponent?.MinimumFrictionSpeed ?? MovementSpeedModifierComponent.DefaultMinimumFrictionSpeed;
             Friction(minimumFrictionSpeed, frameTime, friction, ref velocity);
 
-            if (xform.GridUid != EntityUid.Invalid)
-                mover.LastGridAngle = parentRotation;
-
             if (worldTotal != Vector2.Zero)
             {
-                // This should have its event run during island solver soooo
-                xform.DeferUpdates = true;
-                TransformComponent rotateXform;
-
-                // If we're in a container then relay rotation to the parent instead
-                if (_container.TryGetContainingContainer(xform.Owner, out var container))
-                {
-                    rotateXform = Transform(container.Owner);
-                }
-                else
-                {
-                    rotateXform = xform;
-                }
-
-                rotateXform.LocalRotation = xform.GridUid != null
-                    ? total.ToWorldAngle()
-                    : worldTotal.ToWorldAngle();
-                rotateXform.DeferUpdates = false;
+                var worldRot = _transform.GetWorldRotation(xform);
+                _transform.SetLocalRotation(xform, xform.LocalRotation + worldTotal.ToWorldAngle() - worldRot);
+                // TODO apparently this results in a duplicate move event because "This should have its event run during
+                // island solver"??. So maybe SetRotation needs an argument to avoid raising an event?
 
                 if (!weightless && TryComp<MobMoverComponent>(mover.Owner, out var mobMover) &&
                     TryGetSound(weightless, mover, mobMover, xform, out var sound))
@@ -223,7 +285,18 @@ namespace Content.Shared.Movement.Systems
                         .WithVolume(FootstepVolume * soundModifier)
                         .WithVariation(sound.Params.Variation ?? FootstepVariation);
 
-                    _audio.PlayPredicted(sound, mover.Owner, mover.Owner, audioParams);
+                    // If we're a relay target then predict the sound for all relays.
+                    if (TryComp<MovementRelayTargetComponent>(mover.Owner, out var targetComp))
+                    {
+                        foreach (var ent in targetComp.Entities)
+                        {
+                            _audio.PlayPredicted(sound, mover.Owner, ent, audioParams);
+                        }
+                    }
+                    else
+                    {
+                        _audio.PlayPredicted(sound, mover.Owner, mover.Owner, audioParams);
+                    }
                 }
             }
 
@@ -233,6 +306,9 @@ namespace Content.Shared.Movement.Systems
                 Accelerate(ref velocity, in worldTotal, accel, frameTime);
 
             PhysicsSystem.SetLinearVelocity(physicsComponent, velocity);
+
+            // Ensures that players do not spiiiiiiin
+            PhysicsSystem.SetAngularVelocity(physicsComponent, 0);
         }
 
         private void Friction(float minimumFrictionSpeed, float frameTime, float friction, ref Vector2 velocity)
@@ -348,6 +424,12 @@ namespace Content.Shared.Movement.Systems
 
             mobMover.StepSoundDistance -= distanceNeeded;
 
+            if (TryComp<FootstepModifierComponent>(mover.Owner, out var moverModifier))
+            {
+                sound = moverModifier.Sound;
+                return true;
+            }
+
             if (_inventory.TryGetSlotEntity(mover.Owner, "shoes", out var shoes) &&
                 EntityManager.TryGetComponent<FootstepModifierComponent>(shoes, out var modifier))
             {
@@ -355,18 +437,18 @@ namespace Content.Shared.Movement.Systems
                 return true;
             }
 
-            return TryGetFootstepSound(coordinates, shoes != null, out sound);
+            return TryGetFootstepSound(xform, shoes != null, out sound);
         }
 
-        private bool TryGetFootstepSound(EntityCoordinates coordinates, bool haveShoes, [NotNullWhen(true)] out SoundSpecifier? sound)
+        private bool TryGetFootstepSound(TransformComponent xform, bool haveShoes, [NotNullWhen(true)] out SoundSpecifier? sound)
         {
             sound = null;
-            var gridUid = coordinates.GetGridUid(EntityManager);
 
             // Fallback to the map
-            if (gridUid == null)
+            if (xform.MapUid == xform.GridUid ||
+                xform.GridUid == null)
             {
-                if (TryComp<FootstepModifierComponent>(coordinates.GetMapUid(EntityManager), out var modifier))
+                if (TryComp<FootstepModifierComponent>(xform.MapUid, out var modifier))
                 {
                     sound = modifier.Sound;
                     return true;
@@ -375,10 +457,11 @@ namespace Content.Shared.Movement.Systems
                 return false;
             }
 
-            var grid = _mapManager.GetGrid(gridUid.Value);
-            var tile = grid.GetTileRef(coordinates);
+            var grid = _mapManager.GetGrid(xform.GridUid.Value);
+            var tile = grid.GetTileRef(xform.Coordinates);
 
-            if (tile.IsSpace(_tileDefinitionManager)) return false;
+            if (tile.IsSpace(_tileDefinitionManager))
+                return false;
 
             // If the coordinates have a FootstepModifier component
             // i.e. component that emit sound on footsteps emit that sound

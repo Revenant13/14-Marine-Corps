@@ -1,7 +1,5 @@
 - type: vendingMachineInventory
   id: BoozeOMatInventory
-  name: Booze-O-Mat
-  spriteName: boozeomat
   startingInventory:
 
     DrinkGlass: 30 #Kept glasses at top for ease to differentiate from booze.
@@ -20,7 +18,7 @@
     DrinkJuiceLimeCarton: 3
     DrinkJuiceOrangeCarton: 3
     DrinkJuiceTomatoCarton: 3
-    DrinkKahluaBottleFull: 3
+    DrinkCoffeeLiqueurBottleFull: 3
     DrinkMelonLiquorBottleFull: 3
     DrinkPatronBottleFull: 2
     DrinkRumBottleFull: 4

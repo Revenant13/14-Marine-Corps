@@ -3,6 +3,7 @@ using Content.Server.Chemistry.EntitySystems;
 using Content.Server.Chemistry.ReactionEffects;
 using Content.Server.Fluids.EntitySystems;
 using Content.Server.HealthExaminable;
+using Content.Server.MobState;
 using Content.Server.Popups;
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.Reaction;
@@ -13,6 +14,7 @@ using Content.Shared.IdentityManagement;
 using Content.Shared.MobState.Components;
 using Content.Shared.Popups;
 using Content.Shared.Drunk;
+using Content.Shared.Rejuvenate;
 using Robust.Shared.Audio;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
@@ -26,6 +28,7 @@ public sealed class BloodstreamSystem : EntitySystem
     [Dependency] private readonly DamageableSystem _damageableSystem = default!;
     [Dependency] private readonly SpillableSystem _spillableSystem = default!;
     [Dependency] private readonly PopupSystem _popupSystem = default!;
+    [Dependency] private readonly MobStateSystem _mobStateSystem = default!;
     [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
     [Dependency] private readonly IRobustRandom _robustRandom = default!;
 
@@ -45,6 +48,7 @@ public sealed class BloodstreamSystem : EntitySystem
         SubscribeLocalEvent<BloodstreamComponent, BeingGibbedEvent>(OnBeingGibbed);
         SubscribeLocalEvent<BloodstreamComponent, ApplyMetabolicMultiplierEvent>(OnApplyMetabolicMultiplier);
         SubscribeLocalEvent<BloodstreamComponent, ReactionAttemptEvent>(OnReactionAttempt);
+        SubscribeLocalEvent<BloodstreamComponent, RejuvenateEvent>(OnRejuvenate);
     }
 
     private void OnReactionAttempt(EntityUid uid, BloodstreamComponent component, ReactionAttemptEvent args)
@@ -88,7 +92,7 @@ public sealed class BloodstreamSystem : EntitySystem
             bloodstream.AccumulatedFrametime -= bloodstream.UpdateInterval;
 
             var uid = bloodstream.Owner;
-            if (TryComp<MobStateComponent>(uid, out var state) && state.IsDead())
+            if (TryComp<MobStateComponent>(uid, out var state) && _mobStateSystem.IsDead(uid, state))
                 continue;
 
             // First, let's refresh their blood if possible.
@@ -174,7 +178,7 @@ public sealed class BloodstreamSystem : EntitySystem
             // We'll play a special sound and popup for feedback.
             SoundSystem.Play(component.BloodHealedSound.GetSound(), Filter.Pvs(uid), uid, AudioParams.Default);
             _popupSystem.PopupEntity(Loc.GetString("bloodstream-component-wounds-cauterized"), uid,
-                Filter.Entities(uid), PopupType.Medium);
+                uid, PopupType.Medium);
 ;       }
     }
 
@@ -216,6 +220,12 @@ public sealed class BloodstreamSystem : EntitySystem
             component.AccumulatedFrametime = component.UpdateInterval;
     }
 
+    private void OnRejuvenate(EntityUid uid, BloodstreamComponent component, RejuvenateEvent args)
+    {
+        TryModifyBleedAmount(uid, -component.BleedAmount, component);
+        TryModifyBloodLevel(uid, component.BloodSolution.AvailableVolume, component);
+    }
+
     /// <summary>
     ///     Attempt to transfer provided solution to internal solution.
     /// </summary>
@@ -225,6 +235,22 @@ public sealed class BloodstreamSystem : EntitySystem
             return false;
 
         return _solutionContainerSystem.TryAddSolution(uid, component.ChemicalSolution, solution);
+    }
+
+    public bool FlushChemicals(EntityUid uid, string excludedReagentID, FixedPoint2 quantity, BloodstreamComponent? component = null) {
+        if (!Resolve(uid, ref component, false))
+            return false;
+
+        for (var i = component.ChemicalSolution.Contents.Count - 1; i >= 0; i--)
+        {
+            var (reagentId, _) = component.ChemicalSolution.Contents[i];
+            if (reagentId != excludedReagentID)
+            {
+                _solutionContainerSystem.TryRemoveReagent(uid, component.ChemicalSolution, reagentId, quantity);
+            }
+        }
+
+        return true;
     }
 
     public float GetBloodLevelPercentage(EntityUid uid, BloodstreamComponent? component = null)

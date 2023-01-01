@@ -78,6 +78,8 @@
   - type: SpaceGarbage
   - type: StaticPrice
     price: 75 # These are limited supply items.
+  - type: TrashOnEmpty
+    solution: pen
 
 - type: entity
   name: emergency medipen
@@ -94,6 +96,8 @@
           Quantity: 12
         - ReagentId: TranexamicAcid
           Quantity: 3
+  - type: Tag
+    tags: []
 
 
 - type: entity
@@ -111,6 +115,8 @@
           Quantity: 10
         - ReagentId: Epinephrine
           Quantity: 5
+  - type: Tag
+    tags: []
 
 - type: entity
   name: space medipen
@@ -141,6 +147,8 @@
             Quantity: 10
           - ReagentId: Barozine
             Quantity: 20
+  - type: Tag
+    tags: []
 
 - type: entity
   name: pen

@@ -23,7 +23,10 @@
     channels:
     - Common
     - Supply
+    defaultChannel: Supply
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/cargo.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/cargo.rsi
 
 - type: entity
@@ -37,7 +40,10 @@
     - Command
     - Common
     - Supply
+    defaultChannel: Supply
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/cargo.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/cargo.rsi
 
 - type: entity
@@ -57,7 +63,10 @@
     - Security
     - Service
     - Supply
+    defaultChannel: CentCom
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/centcom.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/centcom.rsi
 
 - type: entity
@@ -76,7 +85,10 @@
     - Security
     - Service
     - Supply
+    defaultChannel: Command
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/command.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/command.rsi
 
 - type: entity
@@ -89,7 +101,10 @@
     channels:
     - Common
     - Engineering
+    defaultChannel: Engineering
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/engineering.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/engineering.rsi
 
 - type: entity
@@ -103,7 +118,10 @@
     - Command
     - Common
     - Engineering
+    defaultChannel: Engineering
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/engineering.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/engineering.rsi
 
 - type: entity
@@ -116,7 +134,10 @@
     channels:
     - Common
     - Medical
+    defaultChannel: Medical
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/medical.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/medical.rsi
 
 - type: entity
@@ -130,7 +151,10 @@
     - Common
     - Medical
     - Science
+    defaultChannel: Science
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/medicalscience.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/medicalscience.rsi
 
 - type: entity
@@ -143,7 +167,10 @@
     channels:
       - Common
       - Supply
+    defaultChannel: Supply
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/mining.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/mining.rsi
 
 - type: entity
@@ -156,7 +183,10 @@
     channels:
       - Common
       - Science
+    defaultChannel: Science
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/robotics.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/robotics.rsi
 
 - type: entity
@@ -169,7 +199,10 @@
     channels:
     - Common
     - Science
+    defaultChannel: Science
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/science.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/science.rsi
 
 - type: entity
@@ -183,7 +216,10 @@
     - Command
     - Common
     - Science
+    defaultChannel: Science
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/science.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/science.rsi
 
 - type: entity
@@ -196,7 +232,10 @@
     channels:
     - Common
     - Security
+    defaultChannel: Security
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/security.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/security.rsi
 
 - type: entity
@@ -209,7 +248,10 @@
     channels:
     - Common
     - Service
+    defaultChannel: Service
   - type: Sprite
+    sprite: Clothing/Ears/Headsets/service.rsi
+  - type: Clothing
     sprite: Clothing/Ears/Headsets/service.rsi
 
 - type: entity
@@ -221,5 +263,6 @@
   - type: Headset
     channels:
     - Common
+    defaultChannel: Common
   - type: Sprite
     sprite: Clothing/Ears/Headsets/base.rsi

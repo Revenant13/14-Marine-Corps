@@ -12,7 +12,7 @@ public sealed class CargoShuttleComponent : Component
     public TimeSpan? NextCall;
 
     [ViewVariables(VVAccess.ReadWrite), DataField("cooldown")]
-    public float Cooldown = 150f;
+    public float Cooldown = 30f;
 
     [ViewVariables]
     public bool CanRecall;
@@ -26,6 +26,6 @@ public sealed class CargoShuttleComponent : Component
     /// <summary>
     /// The assigned station for this cargo shuttle.
     /// </summary>
-    [ViewVariables, DataField("station")]
+    [DataField("station")]
     public EntityUid? Station;
 }

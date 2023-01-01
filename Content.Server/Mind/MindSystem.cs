@@ -2,6 +2,7 @@ using Content.Server.GameTicking;
 using Content.Server.Ghost;
 using Content.Server.Ghost.Components;
 using Content.Server.Mind.Components;
+using Content.Server.MobState;
 using Content.Shared.Examine;
 using Content.Shared.MobState.Components;
 using Robust.Shared.Map;
@@ -13,6 +14,7 @@ public sealed class MindSystem : EntitySystem
 {
     [Dependency] private readonly IMapManager _mapManager = default!;
     [Dependency] private readonly GameTicker _gameTicker = default!;
+    [Dependency] private readonly MobStateSystem _mobStateSystem = default!;
     [Dependency] private readonly GhostSystem _ghostSystem = default!;
 
     public override void Initialize()
@@ -80,8 +82,11 @@ public sealed class MindSystem : EntitySystem
             }
             else if (mind.GhostOnShutdown)
             {
+                // Changing an entities parents while deleting is VERY sus. This WILL throw exceptions.
+                // TODO: just find the applicable spawn position dirctly without actually updating the transform's parent.
                 Transform(uid).AttachToGridOrMap();
                 var spawnPosition = Transform(uid).Coordinates;
+
                 // Use a regular timer here because the entity has probably been deleted.
                 Timer.Spawn(0, () =>
                 {
@@ -94,6 +99,13 @@ public sealed class MindSystem : EntitySystem
                     if (!spawnPosition.IsValid(EntityManager) || gridId == EntityUid.Invalid || !_mapManager.GridExists(gridId))
                     {
                         spawnPosition = _gameTicker.GetObserverSpawnPoint();
+                    }
+
+                    // TODO refactor observer spawning.
+                    if (!spawnPosition.IsValid(EntityManager))
+                    {
+                        Logger.ErrorS("mind", $"Entity \"{ToPrettyString(uid)}\" for {mind.Mind?.CharacterName} was deleted, and no applicable spawn location is available.");
+                        return;
                     }
 
                     var ghost = Spawn("MobObserver", spawnPosition);
@@ -121,7 +133,7 @@ public sealed class MindSystem : EntitySystem
             return;
         }
 
-        var dead = TryComp<MobStateComponent?>(uid, out var state) && state.IsDead();
+        var dead = TryComp<MobStateComponent?>(uid, out var state) && _mobStateSystem.IsDead(uid, state);
 
         if (dead)
         {

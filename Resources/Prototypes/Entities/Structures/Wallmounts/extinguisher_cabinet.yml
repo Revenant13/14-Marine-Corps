@@ -12,6 +12,7 @@
     - type: Sprite
       sprite: Structures/Wallmounts/extinguisher_cabinet.rsi
       netsync: false
+      snapCardinals: true
       layers:
       - state: frame
       - state: extinguisher
@@ -31,6 +32,25 @@
     - type: ItemCabinetVisuals
       openState: open
       closedState: closed
+    - type: ItemSlots
+    - type: ContainerContainer
+      containers:
+        ItemCabinet: !type:ContainerSlot
+    - type: Damageable
+      damageContainer: Inorganic
+      damageModifierSet: Metallic
+    - type: Destructible
+      thresholds:
+        - trigger:
+            !type:DamageTrigger
+            damage: 40
+          behaviors:
+            - !type:EmptyAllContainersBehaviour
+            - !type:DoActsBehavior
+              acts: [ "Destruction" ]
+            - !type:PlaySoundBehavior
+              sound:
+                path: /Audio/Effects/metalbreak.ogg
   placement:
     mode: SnapgridCenter
 

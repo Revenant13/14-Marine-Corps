@@ -7,7 +7,7 @@ namespace Content.Shared.Atmos.Prototypes
     [Prototype("gas")]
     public sealed class GasPrototype : IPrototype
     {
-        [DataField("name")] public string Name { get; } = string.Empty;
+        [DataField("name")] public string Name { get; set; } = "";
 
         // TODO: Control gas amount necessary for overlay to appear
         // TODO: Add interfaces for gas behaviours e.g. breathing, burning

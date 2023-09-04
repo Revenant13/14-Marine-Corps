@@ -78,6 +78,9 @@ public abstract partial class SharedHandsSystem : EntitySystem
         if (!TryComp(session?.AttachedEntity, out SharedHandsComponent? component))
             return;
 
+        if (!_actionBlocker.CanInteract(session.AttachedEntity.Value, null))
+            return;
+
         if (component.ActiveHand == null || component.Hands.Count < 2)
             return;
 
@@ -90,7 +93,7 @@ public abstract partial class SharedHandsSystem : EntitySystem
     private bool DropPressed(ICommonSession? session, EntityCoordinates coords, EntityUid uid)
     {
         if (TryComp(session?.AttachedEntity, out SharedHandsComponent? hands) && hands.ActiveHand != null)
-            TryDrop(session!.AttachedEntity!.Value, hands.ActiveHand, coords, handsComp: hands);
+            TryDrop(session.AttachedEntity!.Value, hands.ActiveHand, coords, handsComp: hands);
 
         // always send to server.
         return false;
@@ -108,7 +111,7 @@ public abstract partial class SharedHandsSystem : EntitySystem
 
         if (hand?.HeldEntity is not { } held)
             return false;
-        
+
         return _interactionSystem.InteractionActivate(uid, held);
     }
 
